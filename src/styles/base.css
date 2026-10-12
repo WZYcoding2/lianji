@@ -1,0 +1,216 @@
+:root {
+  --accent: #ff6b2c;
+  --accent-rgb: 255, 107, 44;
+  --on-accent: #ffffff;
+  --success: #30c85e;
+  --success-rgb: 48, 200, 94;
+  --danger: #ff3b30;
+  --danger-rgb: 255, 59, 48;
+  --gold: #ffb300;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tabbar-h: 62px;
+  --tabbar-bottom: max(calc(var(--safe-bottom) - 8px), 12px);
+  --tabbar-space: calc(var(--tabbar-h) + var(--tabbar-bottom) + 16px);
+  --mini-h: 0px;
+
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    'Helvetica Neue', sans-serif;
+  --font-num: ui-rounded, 'SF Pro Rounded', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  color-scheme: light;
+  --bg: #f2f2f7;
+  --surface: #ffffff;
+  --surface-sheet: #ffffff;
+  --sheet-bg: #f2f2f7;
+  --fill: rgba(118, 118, 128, 0.12);
+  --fill-2: rgba(118, 118, 128, 0.07);
+  --fill-strong: rgba(120, 120, 128, 0.2);
+  --text: #000000;
+  --text-2: rgba(60, 60, 67, 0.64);
+  --text-3: rgba(60, 60, 67, 0.3);
+  --sep: rgba(60, 60, 67, 0.17);
+  --bar-bg: rgba(242, 242, 247, 0.8);
+  --glass: rgba(255, 255, 255, 0.74);
+  --glass-strong: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+  --seg-active: #ffffff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --backdrop: rgba(0, 0, 0, 0.3);
+  --toast-bg: rgba(28, 28, 30, 0.94);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-sheet: #2c2c2e;
+  --sheet-bg: #1c1c1e;
+  --fill: rgba(118, 118, 128, 0.24);
+  --fill-2: rgba(118, 118, 128, 0.14);
+  --fill-strong: rgba(120, 120, 128, 0.36);
+  --text: #ffffff;
+  --text-2: rgba(235, 235, 245, 0.62);
+  --text-3: rgba(235, 235, 245, 0.3);
+  --sep: rgba(84, 84, 88, 0.6);
+  --bar-bg: rgba(0, 0, 0, 0.72);
+  --glass: rgba(40, 40, 44, 0.72);
+  --glass-strong: rgba(48, 48, 52, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-shadow: 0 10px 34px rgba(0, 0, 0, 0.5);
+  --seg-active: #636366;
+  --shadow: none;
+  --backdrop: rgba(0, 0, 0, 0.55);
+  --toast-bg: rgba(58, 58, 62, 0.96);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  touch-action: manipulation;
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+svg {
+  flex: none;
+}
+
+.num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--text-2);
+}
+
+.faint {
+  color: var(--text-3);
+}
+
+.accent {
+  color: var(--accent);
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.spacer {
+  flex: 1;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--success-rgb), 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(var(--success-rgb), 0);
+  }
+}
+
+@keyframes shake {
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
+}
