@@ -153,53 +153,112 @@ export const BUILTIN_EXERCISES: Def[] = [
   ['wrist_curl', '杠铃腕弯举', 'other', 'barbell'],
 ];
 
-type TemplateDef = { name: string; notes?: string; items: [key: string, sets: number, reps?: number, duration?: number][] };
+type ItemDef = [key: string, sets: number, reps?: number, duration?: number];
+type DayDef = { name: string; items: ItemDef[] };
+/** days 的键是星期几：0 = 周日 … 6 = 周六 */
+export type PlanDef = { name: string; notes?: string; days: Partial<Record<number, DayDef>> };
 
-export const BUILTIN_TEMPLATES: TemplateDef[] = [
+const PUSH: DayDef = {
+  name: '推 · 胸肩三头',
+  items: [
+    ['bench_press', 4, 8],
+    ['incline_db_press', 3, 10],
+    ['seated_db_press', 3, 10],
+    ['lateral_raise', 4, 12],
+    ['triceps_pushdown', 3, 12],
+  ],
+};
+
+const PULL: DayDef = {
+  name: '拉 · 背二头',
+  items: [
+    ['pull_up', 4, 8],
+    ['barbell_row', 4, 8],
+    ['lat_pulldown', 3, 10],
+    ['seated_cable_row', 3, 12],
+    ['barbell_curl', 3, 10],
+    ['hammer_curl', 3, 12],
+  ],
+};
+
+const LEGS: DayDef = {
+  name: '腿 · 腿臀',
+  items: [
+    ['squat', 4, 8],
+    ['romanian_deadlift', 3, 10],
+    ['leg_press', 3, 12],
+    ['leg_extension', 3, 12],
+    ['lying_leg_curl', 3, 12],
+    ['standing_calf_raise', 4, 15],
+  ],
+};
+
+const FULL_BODY: DayDef = {
+  name: '全身',
+  items: [
+    ['goblet_squat', 3, 12],
+    ['db_bench_press', 3, 10],
+    ['lat_pulldown', 3, 12],
+    ['seated_db_press', 3, 10],
+    ['plank', 3, undefined, 60],
+  ],
+};
+
+export const BUILTIN_PLANS: PlanDef[] = [
   {
-    name: '推 · 胸肩三头',
-    notes: '示例计划，可以随意修改或删除',
-    items: [
-      ['bench_press', 4, 8],
-      ['incline_db_press', 3, 10],
-      ['seated_db_press', 3, 10],
-      ['lateral_raise', 4, 12],
-      ['triceps_pushdown', 3, 12],
-    ],
+    name: '五分化训练',
+    notes: '示例计划：一天练一个部位，周末休息。可以随意修改或删除',
+    days: {
+      1: {
+        name: '胸',
+        items: [
+          ['bench_press', 4, 8],
+          ['incline_db_press', 4, 10],
+          ['pec_deck', 3, 12],
+          ['chest_dip', 3, 10],
+        ],
+      },
+      2: {
+        name: '背',
+        items: [
+          ['pull_up', 4, 8],
+          ['barbell_row', 4, 8],
+          ['lat_pulldown', 3, 10],
+          ['seated_cable_row', 3, 12],
+        ],
+      },
+      3: LEGS,
+      4: {
+        name: '肩',
+        items: [
+          ['overhead_press', 4, 8],
+          ['lateral_raise', 4, 12],
+          ['rear_delt_fly', 3, 12],
+          ['face_pull', 3, 15],
+        ],
+      },
+      5: {
+        name: '手臂',
+        items: [
+          ['barbell_curl', 3, 10],
+          ['hammer_curl', 3, 12],
+          ['triceps_pushdown', 3, 12],
+          ['db_overhead_extension', 3, 12],
+        ],
+      },
+    },
   },
   {
-    name: '拉 · 背二头',
-    notes: '示例计划，可以随意修改或删除',
-    items: [
-      ['pull_up', 4, 8],
-      ['barbell_row', 4, 8],
-      ['lat_pulldown', 3, 10],
-      ['seated_cable_row', 3, 12],
-      ['barbell_curl', 3, 10],
-      ['hammer_curl', 3, 12],
-    ],
-  },
-  {
-    name: '腿 · 腿臀',
-    notes: '示例计划，可以随意修改或删除',
-    items: [
-      ['squat', 4, 8],
-      ['romanian_deadlift', 3, 10],
-      ['leg_press', 3, 12],
-      ['leg_extension', 3, 12],
-      ['lying_leg_curl', 3, 12],
-      ['standing_calf_raise', 4, 15],
-    ],
+    name: '推拉腿三分化',
+    notes: '示例计划：每周练 3 天，适合有一定基础',
+    days: { 1: PUSH, 3: PULL, 5: LEGS },
   },
   {
     name: '新手全身训练',
-    notes: '适合刚开始健身，每周 2~3 次',
-    items: [
-      ['goblet_squat', 3, 12],
-      ['db_bench_press', 3, 10],
-      ['lat_pulldown', 3, 12],
-      ['seated_db_press', 3, 10],
-      ['plank', 3, undefined, 60],
-    ],
+    notes: '示例计划：刚开始健身，每周练 3 次全身',
+    days: { 1: FULL_BODY, 3: FULL_BODY, 5: FULL_BODY },
   },
 ];
+
+/** 1.0 版内置的示例计划名，升级时用来识别未改动过的示例 */
+export const LEGACY_SAMPLE_NAMES = ['推 · 胸肩三头', '拉 · 背二头', '腿 · 腿臀', '新手全身训练'];

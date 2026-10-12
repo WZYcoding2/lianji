@@ -3,7 +3,7 @@ import { create } from 'zustand';
 export type TabKey = 'workout' | 'history' | 'exercises' | 'stats' | 'me';
 
 export type Route =
-  | { name: 'templateEdit'; id?: number; fromWorkoutId?: number }
+  | { name: 'planEdit'; id?: number; day?: number }
   | { name: 'workoutDetail'; id: number }
   | { name: 'workoutEdit'; id: number }
   | { name: 'exerciseDetail'; id: number }

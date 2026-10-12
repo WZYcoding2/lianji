@@ -10,13 +10,13 @@ import { cx } from '../lib/cx';
 import { fmtFullDate, fmtTime, fmtWeekday } from '../lib/date';
 import { fmtDurationText, fmtNum, fmtSet, fmtVolume, kgToDisplay } from '../lib/format';
 import { e1rm, workoutDuration, workoutSetCount, workoutVolume } from '../lib/stats';
-import { deleteWorkout, saveWorkoutAsTemplate, startWorkout } from '../lib/actions';
+import { deleteWorkout, saveWorkoutToPlan, startWorkout } from '../lib/actions';
 import { workoutToActive } from '../lib/draft';
 import { shareText, workoutShareText } from '../lib/share';
 import { SET_KIND_MAP } from '../data/meta';
 
 export function WorkoutDetail({ id }: { id: number }) {
-  const { workouts, exMap, index } = useData();
+  const { workouts, exMap, index, plans } = useData();
   const unit = useSettings((s) => s.unit);
   const w = workouts.find((x) => x.id === id);
 
@@ -37,13 +37,13 @@ export function WorkoutDetail({ id }: { id: number }) {
       actions: [
         { label: '编辑这次训练', value: 'edit', icon: <Pencil size={20} /> },
         { label: '分享训练内容', value: 'share', icon: <Share size={20} /> },
-        { label: '保存为计划', value: 'template', icon: <ClipboardPlus size={20} /> },
+        { label: '保存到计划的某一天', value: 'template', icon: <ClipboardPlus size={20} /> },
         { label: '删除', value: 'delete', destructive: true, icon: <Trash size={20} /> },
       ],
     });
     if (v === 'edit') nav.push({ name: 'workoutEdit', id });
     else if (v === 'share') void shareText(workoutShareText(w, exMap, unit, prs));
-    else if (v === 'template') void saveWorkoutAsTemplate(w);
+    else if (v === 'template') void saveWorkoutToPlan(w, plans, exMap);
     else if (v === 'delete') {
       if (await deleteWorkout(w)) nav.pop();
     }

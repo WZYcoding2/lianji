@@ -9,7 +9,7 @@ import { HistoryScreen } from '../screens/HistoryScreen';
 import { ExerciseLibrary } from '../screens/ExerciseLibrary';
 import { StatsScreen } from '../screens/StatsScreen';
 import { MeScreen } from '../screens/MeScreen';
-import { TemplateEditor } from '../screens/TemplateEditor';
+import { PlanEditor } from '../screens/PlanEditor';
 import { WorkoutDetail } from '../screens/WorkoutDetail';
 import { WorkoutEdit } from '../screens/WorkoutEdit';
 import { ExerciseDetailPage } from '../screens/ExerciseDetail';
@@ -34,8 +34,8 @@ const ROOTS: Record<TabKey, () => ReactNode> = {
 
 function renderRoute(route: Route): ReactNode {
   switch (route.name) {
-    case 'templateEdit':
-      return <TemplateEditor id={route.id} fromWorkoutId={route.fromWorkoutId} />;
+    case 'planEdit':
+      return <PlanEditor id={route.id} day={route.day} />;
     case 'workoutDetail':
       return <WorkoutDetail id={route.id} />;
     case 'workoutEdit':

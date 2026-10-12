@@ -2,9 +2,11 @@ import { db } from '../db/db';
 import { useActive, useRest } from '../store/workout';
 import { actionSheet, confirmDialog, toast, useUI } from '../store/ui';
 import { nav } from '../store/nav';
-import type { ActiveWorkout, Exercise, Template, Workout } from '../types';
-import { cleanForSave, hasValues, isSetComplete, toTemplateExercises } from './draft';
-import { defaultWorkoutName } from './date';
+import { useSettings } from '../store/settings';
+import type { ActiveWorkout, Exercise, Plan, PlanDay, Workout } from '../types';
+import { cleanForSave, hasValues, isSetComplete, toPlanExercises } from './draft';
+import { defaultWorkoutName, WEEKDAYS } from './date';
+import { dayName, emptyDays, isTrainingDay, weekOrder } from './plan';
 
 export async function startWorkout(aw: ActiveWorkout) {
   const { active, start } = useActive.getState();
@@ -110,6 +112,7 @@ export async function finishActiveWorkout(exMap: Map<number, Exercise>) {
     endedAt: Math.max(Date.now(), active.startedAt + 60000),
     notes: active.notes?.trim() || undefined,
     templateId: active.templateId,
+    planDay: active.planDay,
     exercises: cleaned,
     exerciseIds: [...new Set(cleaned.map((e) => e.exerciseId))],
   };
@@ -125,9 +128,10 @@ export async function finishActiveWorkout(exMap: Map<number, Exercise>) {
   }
 }
 
-/** 用一次训练的动作和组数覆盖计划 */
-export async function updateTemplateFromWorkout(t: Template, w: Workout) {
-  await db.templates.update(t.id!, { exercises: toTemplateExercises(w.exercises), updatedAt: Date.now() });
+/** 用一次训练的动作和组数覆盖计划里的某一天 */
+export async function updatePlanDayFromWorkout(p: Plan, wd: number, w: Workout) {
+  const days = p.days.map((d, i) => (i === wd ? { ...d, exercises: toPlanExercises(w.exercises) } : d));
+  await db.templates.update(p.id!, { days, updatedAt: Date.now() });
   toast('计划已更新', { tone: 'success' });
 }
 
@@ -144,27 +148,63 @@ export async function deleteWorkout(w: Workout): Promise<boolean> {
   return true;
 }
 
-export async function saveWorkoutAsTemplate(w: Workout) {
-  const count = await db.templates.count();
+/** 把一次训练存成某个计划里星期几的内容 */
+export async function saveWorkoutToPlan(w: Workout, plans: Plan[], exMap: Map<number, Exercise>) {
+  const target = await actionSheet({
+    title: '保存到哪个计划？',
+    actions: [
+      ...plans.map((p) => ({ label: p.name, value: String(p.id) })),
+      { label: '＋ 新建一个计划', value: 'new' },
+    ],
+  });
+  if (!target) return;
   const now = Date.now();
-  const id = (await db.templates.add({
-    name: w.name,
-    exercises: toTemplateExercises(w.exercises),
-    sort: count,
-    createdAt: now,
-    updatedAt: now,
-  })) as number;
-  toast('已保存为计划', { tone: 'success' });
-  nav.push({ name: 'templateEdit', id });
+  const plan: Plan =
+    target === 'new'
+      ? { name: w.name, days: emptyDays(), sort: plans.length, createdAt: now, updatedAt: now }
+      : plans.find((p) => p.id === Number(target))!;
+  const trainedWd = new Date(w.startedAt).getDay();
+  const picked = await actionSheet({
+    title: `放在「${plan.name}」的星期几？`,
+    actions: weekOrder(useSettings.getState().weekStart).map((wd) => {
+      const d = plan.days[wd];
+      const note = isTrainingDay(d) ? `（已有：${dayName(d, exMap)}）` : wd === trainedWd ? '（训练当天）' : '';
+      return { label: `${WEEKDAYS[wd]}${note}`, value: String(wd) };
+    }),
+  });
+  if (picked == null) return;
+  const wd = Number(picked);
+  if (isTrainingDay(plan.days[wd])) {
+    const ok = await confirmDialog({
+      title: `替换${WEEKDAYS[wd]}的训练？`,
+      message: `「${dayName(plan.days[wd], exMap)}」会被这次训练的内容替换`,
+      confirmText: '替换',
+      destructive: true,
+    });
+    if (!ok) return;
+  }
+  const days = plan.days.map((d, i) => (i === wd ? { name: w.name, exercises: toPlanExercises(w.exercises) } : d));
+  let id = plan.id;
+  if (id == null) {
+    id = (await db.templates.add({ ...plan, days })) as number;
+  } else {
+    await db.templates.update(id, { days, updatedAt: now });
+  }
+  toast(`已保存到「${plan.name}」${WEEKDAYS[wd]}`, { tone: 'success' });
+  nav.push({ name: 'planEdit', id, day: wd });
 }
 
-export async function duplicateTemplate(t: Template) {
+export function copyDays(days: PlanDay[]): PlanDay[] {
+  return days.map((d) => ({ name: d.name, exercises: toPlanExercises(d.exercises) }));
+}
+
+export async function duplicatePlan(p: Plan) {
   const count = await db.templates.count();
   const now = Date.now();
   await db.templates.add({
-    name: `${t.name} 副本`,
-    notes: t.notes,
-    exercises: toTemplateExercises(t.exercises),
+    name: `${p.name} 副本`,
+    notes: p.notes,
+    days: copyDays(p.days),
     sort: count,
     createdAt: now,
     updatedAt: now,
@@ -172,15 +212,16 @@ export async function duplicateTemplate(t: Template) {
   toast('已复制计划', { tone: 'success' });
 }
 
-export async function deleteTemplate(t: Template): Promise<boolean> {
+export async function deletePlan(p: Plan): Promise<boolean> {
   const ok = await confirmDialog({
-    title: `删除计划「${t.name}」？`,
+    title: `删除计划「${p.name}」？`,
     message: '已有的训练记录不受影响',
     confirmText: '删除',
     destructive: true,
   });
   if (!ok) return false;
-  await db.templates.delete(t.id!);
+  await db.templates.delete(p.id!);
+  if (useSettings.getState().currentPlanId === p.id) useSettings.getState().set({ currentPlanId: undefined });
   toast('计划已删除');
   return true;
 }

@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ClipboardList, Share, Trophy } from 'lucide-react';
 import { structureDiffers } from '../lib/draft';
-import { updateTemplateFromWorkout } from '../lib/actions';
+import { updatePlanDayFromWorkout } from '../lib/actions';
+import { isTrainingDay } from '../lib/plan';
 import { useData } from '../data/DataProvider';
 import { useSettings } from '../store/settings';
 import { useUI } from '../store/ui';
 import { cx } from '../lib/cx';
 import { fmtClock, fmtDurationText, fmtNum, fmtSet, fmtVolume, fmtW, kgToDisplay } from '../lib/format';
-import { fmtRelativeDay } from '../lib/date';
+import { fmtRelativeDay, WEEKDAYS } from '../lib/date';
 import {
   PR_LABEL,
   metricOf,
@@ -116,7 +117,7 @@ export function SummaryOverlay() {
 
 function SummaryView({ w }: { w: Workout }) {
   const setId = useUI((s) => s.setSummaryId);
-  const { workouts, exMap, index, templates } = useData();
+  const { workouts, exMap, index, plans } = useData();
   const unit = useSettings((s) => s.unit);
   const [closing, setClosing] = useState(false);
   const [planDismissed, setPlanDismissed] = useState(false);
@@ -125,8 +126,9 @@ function SummaryView({ w }: { w: Workout }) {
   const prs = index.prsByWorkout.get(w.id!) ?? [];
   const vol = workoutVolume(w, exMap);
   const v = fmtVolume(vol, unit);
-  const tpl = w.templateId != null ? templates.find((t) => t.id === w.templateId) : undefined;
-  const planDiffers = !!tpl && structureDiffers(tpl.exercises, w.exercises);
+  const plan = w.templateId != null ? plans.find((p) => p.id === w.templateId) : undefined;
+  const planDay = plan && w.planDay != null ? plan.days[w.planDay] : undefined;
+  const planDiffers = !!planDay && isTrainingDay(planDay) && structureDiffers(planDay.exercises, w.exercises);
 
   const close = () => {
     setClosing(true);
@@ -185,18 +187,23 @@ function SummaryView({ w }: { w: Workout }) {
           </div>
         )}
 
-        {tpl && planDiffers && !planDismissed && (
+        {plan && w.planDay != null && planDiffers && !planDismissed && (
           <div className="card plan-card">
             <div className="plan-title">
               <ClipboardList size={19} />
-              更新计划「{tpl.name}」？
+              更新计划「{plan.name} · {WEEKDAYS[w.planDay]}」？
             </div>
-            <div className="plan-text">这次的动作或组数和计划不一样。更新后，下次会按这次的内容开始。</div>
+            <div className="plan-text">
+              这次的动作或组数和计划里{WEEKDAYS[w.planDay]}的安排不一样。更新后，下个{WEEKDAYS[w.planDay]}会按这次的内容开始。
+            </div>
             <div className="btn-row">
               <button className="btn btn-md" onClick={() => setPlanDismissed(true)}>
                 保持原计划
               </button>
-              <button className="btn btn-md btn-tinted" onClick={() => void updateTemplateFromWorkout(tpl, w)}>
+              <button
+                className="btn btn-md btn-tinted"
+                onClick={() => void updatePlanDayFromWorkout(plan, w.planDay!, w)}
+              >
                 更新计划
               </button>
             </div>

@@ -1,22 +1,48 @@
 import Dexie, { type EntityTable } from 'dexie';
-import type { BodyRecord, Exercise, Template, Workout } from '../types';
-import { BUILTIN_EXERCISES, BUILTIN_TEMPLATES } from '../data/exercises';
-import { uid } from '../lib/uid';
+import type { BodyRecord, Exercise, LegacyTemplate, Plan, Workout } from '../types';
+import { BUILTIN_EXERCISES, LEGACY_SAMPLE_NAMES } from '../data/exercises';
+import { buildSamplePlans, legacyTemplateToPlan } from '../lib/plan';
+
+const STORES = {
+  exercises: '++id, key, name, bodyPart',
+  workouts: '++id, startedAt, *exerciseIds',
+  templates: '++id, sort',
+  bodyRecords: '++id, date',
+};
 
 export class LianjiDB extends Dexie {
   exercises!: EntityTable<Exercise, 'id'>;
   workouts!: EntityTable<Workout, 'id'>;
-  templates!: EntityTable<Template, 'id'>;
+  templates!: EntityTable<Plan, 'id'>;
   bodyRecords!: EntityTable<BodyRecord, 'id'>;
 
   constructor() {
     super('lianji');
-    this.version(1).stores({
-      exercises: '++id, key, name, bodyPart',
-      workouts: '++id, startedAt, *exerciseIds',
-      templates: '++id, sort',
-      bodyRecords: '++id, date',
-    });
+    this.version(1).stores(STORES);
+    // 2.0：计划改为按星期安排
+    this.version(2)
+      .stores(STORES)
+      .upgrade(async (tx) => {
+        const table = tx.table('templates');
+        const rows: (LegacyTemplate | Plan)[] = await table.toArray();
+        let removedSamples = false;
+        for (const row of rows) {
+          if (Array.isArray((row as Plan).days)) continue;
+          const legacy = row as LegacyTemplate;
+          if (LEGACY_SAMPLE_NAMES.includes(legacy.name) && legacy.updatedAt === legacy.createdAt) {
+            await table.delete(legacy.id!);
+            removedSamples = true;
+          } else {
+            await table.put(legacyTemplateToPlan(legacy));
+          }
+        }
+        if (removedSamples) {
+          const exercises: Exercise[] = await tx.table('exercises').toArray();
+          const idByKey = new Map(exercises.filter((e) => e.key).map((e) => [e.key!, e.id!]));
+          await table.bulkAdd(buildSamplePlans(idByKey, Date.now(), await table.count()));
+        }
+      });
+
     this.on('populate', (tx) => {
       const now = Date.now();
       const exercises: Exercise[] = BUILTIN_EXERCISES.map(([key, name, bodyPart, equipment, type], i) => ({
@@ -29,28 +55,8 @@ export class LianjiDB extends Dexie {
         createdAt: now,
       }));
       const idByKey = new Map(exercises.map((e) => [e.key!, e.id!]));
-      const templates: Template[] = BUILTIN_TEMPLATES.map((t, i) => ({
-        name: t.name,
-        notes: t.notes,
-        sort: i,
-        createdAt: now,
-        updatedAt: now,
-        exercises: t.items
-          .filter(([key]) => idByKey.has(key))
-          .map(([key, sets, reps, duration]) => ({
-            uid: uid(),
-            exerciseId: idByKey.get(key)!,
-            sets: Array.from({ length: sets }, () => ({
-              uid: uid(),
-              kind: 'normal' as const,
-              done: false,
-              reps,
-              duration,
-            })),
-          })),
-      }));
       void tx.table('exercises').bulkAdd(exercises);
-      void tx.table('templates').bulkAdd(templates);
+      void tx.table('templates').bulkAdd(buildSamplePlans(idByKey, now));
     });
   }
 }

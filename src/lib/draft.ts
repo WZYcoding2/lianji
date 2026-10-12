@@ -2,14 +2,15 @@ import type {
   ActiveWorkout,
   Exercise,
   ExerciseType,
+  Plan,
   SetValues,
-  Template,
   Workout,
   WorkoutExercise,
   WorkoutSet,
 } from '../types';
 import { uid } from './uid';
 import { defaultWorkoutName } from './date';
+import { workoutNameFor } from './plan';
 
 const VALUE_KEYS = ['weight', 'reps', 'duration', 'distance'] as const;
 
@@ -76,12 +77,13 @@ export function isSetComplete(v: SetValues, type: ExerciseType): boolean {
   }
 }
 
-export function templateToActive(t: Template): ActiveWorkout {
+export function planDayToActive(p: Plan, wd: number): ActiveWorkout {
   return {
-    name: t.name,
+    name: workoutNameFor(p, wd),
     startedAt: Date.now(),
-    templateId: t.id,
-    exercises: t.exercises.map((we) => ({
+    templateId: p.id,
+    planDay: wd,
+    exercises: (p.days[wd]?.exercises ?? []).map((we) => ({
       uid: uid(),
       exerciseId: we.exerciseId,
       rest: we.rest,
@@ -101,6 +103,7 @@ export function workoutToActive(w: Workout): ActiveWorkout {
     name: w.name,
     startedAt: Date.now(),
     templateId: w.templateId,
+    planDay: w.planDay,
     exercises: w.exercises.map((we) => ({
       uid: uid(),
       exerciseId: we.exerciseId,
@@ -114,8 +117,8 @@ export function emptyActive(): ActiveWorkout {
   return { name: defaultWorkoutName(), startedAt: Date.now(), exercises: [] };
 }
 
-/** 保存为计划：只保留结构与数值 */
-export function toTemplateExercises(list: WorkoutExercise[]): WorkoutExercise[] {
+/** 存进计划（或复制计划里的一天）：只保留结构与数值，并换上新的 uid */
+export function toPlanExercises(list: WorkoutExercise[]): WorkoutExercise[] {
   return list
     .filter((we) => we.sets.length)
     .map((we) => ({

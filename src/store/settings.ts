@@ -17,6 +17,8 @@ export interface Settings {
   nickname: string;
   installTipDismissed: boolean;
   lastBackupAt?: number;
+  /** 首页「今日训练」跟随的计划 */
+  currentPlanId?: number;
 }
 
 interface SettingsStore extends Settings {

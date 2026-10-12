@@ -72,12 +72,35 @@ export interface Workout {
   startedAt: number;
   endedAt: number;
   notes?: string;
+  /** 来自哪个计划（字段名沿用旧版） */
   templateId?: number;
+  /** 来自计划里的星期几：0 = 周日 … 6 = 周六 */
+  planDay?: number;
   exercises: WorkoutExercise[];
   exerciseIds: number[];
 }
 
-export interface Template {
+export interface PlanDay {
+  /** 这天练什么，如「胸 + 三头」；没有动作就是休息日 */
+  name?: string;
+  exercises: WorkoutExercise[];
+}
+
+/** 训练计划，存放在 templates 表 */
+export interface Plan {
+  id?: number;
+  name: string;
+  notes?: string;
+  /** 固定 7 项，下标即星期几：0 = 周日 … 6 = 周六 */
+  days: PlanDay[];
+  sort: number;
+  createdAt: number;
+  updatedAt: number;
+  lastUsedAt?: number;
+}
+
+/** 1.0 版的计划格式：只有一组动作，没有按天区分 */
+export interface LegacyTemplate {
   id?: number;
   name: string;
   notes?: string;
@@ -109,5 +132,6 @@ export interface ActiveWorkout {
   startedAt: number;
   notes?: string;
   templateId?: number;
+  planDay?: number;
   exercises: WorkoutExercise[];
 }

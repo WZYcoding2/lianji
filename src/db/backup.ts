@@ -1,11 +1,13 @@
 import { db } from './db';
 import { getSettings, useSettings, type Settings } from '../store/settings';
-import type { BodyRecord, Exercise, Template, Workout } from '../types';
+import type { BodyRecord, Exercise, LegacyTemplate, Plan, Workout } from '../types';
 import { BODY_PART_MAP, SET_KIND_MAP } from '../data/meta';
 import { dayKey, fmtTime } from '../lib/date';
+import { legacyTemplateToPlan, normalizeDays } from '../lib/plan';
 
 const APP_ID = 'lianji';
-const BACKUP_VERSION = 1;
+/** 2：计划按星期安排 */
+const BACKUP_VERSION = 2;
 
 export interface BackupFile {
   app: typeof APP_ID;
@@ -14,7 +16,7 @@ export interface BackupFile {
   data: {
     exercises: Exercise[];
     workouts: Workout[];
-    templates: Template[];
+    templates: Plan[];
     bodyRecords: BodyRecord[];
     settings: Partial<Settings>;
   };
@@ -50,7 +52,12 @@ export function parseBackup(text: string): BackupFile {
   if (b.version > BACKUP_VERSION) throw new Error('备份来自更新版本的 App，请先更新');
   const d = b.data;
   if (!Array.isArray(d.exercises) || !Array.isArray(d.workouts)) throw new Error('备份文件内容不完整');
-  d.templates = Array.isArray(d.templates) ? d.templates : [];
+  const raw: (Plan | LegacyTemplate)[] = Array.isArray(d.templates) ? d.templates : [];
+  d.templates = raw.map((t) =>
+    Array.isArray((t as Plan).days)
+      ? { ...(t as Plan), days: normalizeDays((t as Plan).days) }
+      : legacyTemplateToPlan(t as LegacyTemplate),
+  );
   d.bodyRecords = Array.isArray(d.bodyRecords) ? d.bodyRecords : [];
   return b;
 }
